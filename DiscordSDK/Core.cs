@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
+#pragma warning disable CS8618, CS8601, CS8605, CS8602, CS8600
+
 namespace Discord
 {
     public enum Result
@@ -1555,6 +1557,7 @@ namespace Discord
             }
 
         }
+
 
         internal ImageManager(IntPtr ptr, IntPtr eventsPtr, ref FFIEvents events)
         {
@@ -4197,3 +4200,5 @@ namespace Discord
         }
     }
 }
+
+#pragma warning restore CS8618, CS8601, CS8605, CS8602, CS8600

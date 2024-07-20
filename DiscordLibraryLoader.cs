@@ -21,7 +21,9 @@ namespace DiscordStatus
 
             if (!File.Exists(LibDestinationPath))
             {
+#pragma warning disable CS8604
                 Directory.CreateDirectory(Path.GetDirectoryName(LibDestinationPath));
+#pragma warning restore CS8604
                 using (var libStr = Assembly.GetExecutingAssembly().GetManifestResourceStream(MelonUtils.IsGame32Bit() ? LibPath86 : LibPath64))
                 {
                     if (libStr == null)
