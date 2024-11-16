@@ -34,7 +34,7 @@ using Discord;
 using System.Threading;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.1", "SlidyDev & databomb")]
+[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.2", "SlidyDev & databomb")]
 
 namespace DiscordStatus
 {

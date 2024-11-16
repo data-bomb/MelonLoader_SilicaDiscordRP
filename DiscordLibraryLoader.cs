@@ -10,9 +10,9 @@ namespace DiscordStatus
     {
         public static bool Loaded { get; private set; }
 
-        public const string LibPath86 = "DiscordStatus.Dependencies.x86.discord_game_sdk.dll";
-        public const string LibPath64 = "DiscordStatus.Dependencies.x86_64.discord_game_sdk64.dll";
-        public const string LibDestinationPath = "UserData/Discord Status/discord_game_sdk.dll";
+        public const string LibPath86 = "Si_DiscordStatus.Dependencies.x86.discord_game_sdk.dll";
+        public const string LibPath64 = "Si_DiscordStatus.Dependencies.x86_64.discord_game_sdk64.dll";
+        public const string LibDestinationPath = "UserData/DiscordStatus/discord_game_sdk.dll";
 
         public static void LoadLibrary()
         {
@@ -21,9 +21,9 @@ namespace DiscordStatus
 
             if (!File.Exists(LibDestinationPath))
             {
-#pragma warning disable CS8604
+                #pragma warning disable CS8604
                 Directory.CreateDirectory(Path.GetDirectoryName(LibDestinationPath));
-#pragma warning restore CS8604
+                #pragma warning restore CS8604
                 using (var libStr = Assembly.GetExecutingAssembly().GetManifestResourceStream(MelonUtils.IsGame32Bit() ? LibPath86 : LibPath64))
                 {
                     if (libStr == null)
