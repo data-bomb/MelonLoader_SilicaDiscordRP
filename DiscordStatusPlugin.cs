@@ -33,18 +33,21 @@ using System;
 using Discord;
 using System.Threading;
 using UnityEngine;
+using HarmonyLib;
 
-[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.2", "SlidyDev & databomb")]
+[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.3", "SlidyDev & databomb")]
 
 namespace DiscordStatus
 {
     public class Si_DiscordStatus : MelonPlugin
     {
         public const long AppId = 1129202364067364944;
-        public Discord.Discord discordClient = null!;
-        public ActivityManager activityManager = null!;
+        public static Discord.Discord discordClient = null!;
+        public static ActivityManager activityManager = null!;
         static float timerRefreshActivity = -123.0f;
         static string currentMap = "Never-Never Land";
+        static string serverPassword = "";
+        public static bool gameAdvertised = false;
 
         private bool gameClosing;
         public bool GameStarted { get; private set; }
@@ -101,6 +104,16 @@ namespace DiscordStatus
             discordClient.SetLogHook(LogLevel.Debug, DiscordLogHandler);
 
             activityManager = discordClient.GetActivityManager();
+
+            activityManager.RegisterSteam(1494420U);
+            activityManager.RegisterCommand("steam://run/1494420");
+            activityManager.OnActivityJoin += OnActivityJoin;
+            activityManager.OnActivityJoinRequest += OnActivityJoinRequest;
+            activityManager.OnActivityInvite += (ActivityActionType type, ref User user,
+                ref Activity activity) =>
+            {
+                MelonLogger.Msg($"Activity Invite: \n\tType:{type}\n\tUser:{user}\n\tActivity:{activity}");
+            };
         }
 
         private void DiscordLogHandler(LogLevel level, string message)
@@ -122,46 +135,102 @@ namespace DiscordStatus
             }
         }
 
+        [HarmonyPatch(typeof(NetworkGameServer), nameof(NetworkGameServer.SetAdvertiseServer))]
+        private static class ApplyPatch_NetworkGameServer_SetAdvertiseServer
+        {
+            public static void Postfix(NetworkGameServer __instance, bool __0)
+            {
+                if (__0)
+                {
+                    gameAdvertised = true;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(NetworkGameServer), nameof(NetworkGameServer.CreateServer))]
+        private static class ApplyPatch_NetworkGameServer_CreateServer
+        {
+            public static void Postfix(bool __result, string __0, LevelInfo __1, GameModeInfo __2, int __3, bool __4, string __5)
+            {
+                serverPassword = __5;
+            }
+        }
+
         public void UpdateActivity()
         {
-            var activity = new Activity
+            if (!gameAdvertised)
             {
-                Details = (NetworkGameServer.GetServerMap() == string.Empty) ? "Loading..." : $"Hosting {NetworkGameServer.GetServerMap()}"
-            };
+                var activityStart = new Activity
+                {
+                    Details = "Loading...",
+                    Assets =
+                    {
+                        LargeImage = "silica512icon",
+                        LargeText = NetworkGameServer.GetServerName(),
+                    }
+                };
 
-            activity.Assets.LargeImage = "silica512icon";
-            
-            activity.Name = NetworkGameServer.GetServerName();
-            activity.Instance = true;
-            activity.Assets.LargeText = activity.Name;
-
-            var playerCount = NetworkGameServer.GetPlayersNum();
-            var maxPlayers = NetworkGameServer.GetPlayersMax();
-            activity.State = (maxPlayers == 0) ? "" : $"{playerCount} / {maxPlayers} Playing";
-
-            // can the Join button work?
-            /*if (maxPlayers != 0)
-            {
-                activity.Party.Id = NetworkServerLobby.GetLobbyID().m_SteamID.ToString();
-                activity.Party.Size.CurrentSize = playerCount;
-                activity.Party.Size.MaxSize = maxPlayers;
-                activity.Secrets.Join = "=";
-            }*/
-
-            if (!string.Equals(currentMap, NetworkGameServer.GetServerMap()))
-            {
-                currentMap = NetworkGameServer.GetServerMap();
-                gameStartedTime = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                activityManager.UpdateActivity(activityStart, ResultHandler);
             }
-
-            if (GameStarted)
+            else
             {
-                activity.Timestamps.Start = gameStartedTime;
+                // update timer if the map changed
+                if (!string.Equals(currentMap, NetworkGameServer.GetServerMap()))
+                {
+                    currentMap = NetworkGameServer.GetServerMap();
+                    gameStartedTime = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                }
 
+                var playerCount = NetworkGameServer.GetPlayersNum();
+                var maxPlayers = NetworkGameServer.GetPlayersMax();
+
+                var activity = new Activity
+                {
+                    State = (NetworkGameServer.GetServerMap() == string.Empty) ? "Switching Maps..." : $"In  {NetworkGameServer.GetServerMap()}",
+                    Details = NetworkGameServer.GetServerName(),
+                    Timestamps =
+                    {
+                        Start = gameStartedTime,
+                    },
+                    Assets =
+                    {
+                        LargeImage = "silica512icon",
+                        LargeText = NetworkGameServer.GetServerName(),
+                    },
+                    Party =
+                    {
+                        Id = NetworkGameServer.GetServerID().m_ID.ToString(),
+                        Size =
+                        {
+                            // 0 current players isn't supported by the Discord API
+                            CurrentSize = playerCount + 1,
+                            MaxSize = maxPlayers,
+                        }
+                    },
+                    Secrets =
+                    {
+                        Join = NetworkGameServer.GetServerPasswordProtected() ? serverPassword : "no-secret",
+                    },
+                    Instance = true,
+                };
+
+                //activity.Name = NetworkGameServer.GetServerName();
+                activityManager.UpdateActivity(activity, ResultHandler);
             }
-
-            activityManager.UpdateActivity(activity, ResultHandler);
         }
+
+        public static void OnActivityJoin(string secret)
+        {
+            MelonLogger.Msg("Entered OnActivityJoin event with secret: " + secret);
+        }
+
+        public static void OnActivityJoinRequest(ref User user) => activityManager.SendRequestReply(
+        user.Id, ActivityJoinRequestReply.Yes, (ActivityManager.SendRequestReplyHandler)(res =>
+            {
+                if (res != Result.Ok)
+                    return;
+                MelonLogger.Msg("Activity join request responded to with: Yes.");
+            }));
 
         public void ResultHandler(Result result)
         {
