@@ -35,7 +35,7 @@ using System.Threading;
 using UnityEngine;
 using HarmonyLib;
 
-[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.3", "SlidyDev & databomb")]
+[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.4", "SlidyDev & databomb")]
 
 namespace DiscordStatus
 {
@@ -106,7 +106,7 @@ namespace DiscordStatus
             activityManager = discordClient.GetActivityManager();
 
             activityManager.RegisterSteam(1494420U);
-            activityManager.RegisterCommand("steam://run/1494420");
+            //activityManager.RegisterCommand("steam://run/1494420");
             activityManager.OnActivityJoin += OnActivityJoin;
             activityManager.OnActivityJoinRequest += OnActivityJoinRequest;
             activityManager.OnActivityInvite += (ActivityActionType type, ref User user,
@@ -203,7 +203,7 @@ namespace DiscordStatus
                         Size =
                         {
                             // 0 current players isn't supported by the Discord API
-                            CurrentSize = playerCount + 1,
+                            CurrentSize = (playerCount < 1 ? 1 : playerCount),
                             MaxSize = maxPlayers,
                         }
                     },
