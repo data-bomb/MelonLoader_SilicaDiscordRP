@@ -35,7 +35,7 @@ using System.Threading;
 using UnityEngine;
 using HarmonyLib;
 
-[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.4", "SlidyDev & databomb")]
+[assembly: MelonInfo(typeof(DiscordStatus.Si_DiscordStatus), "Silica Discord Status", "1.0.5", "SlidyDev & databomb")]
 
 namespace DiscordStatus
 {
@@ -57,7 +57,6 @@ namespace DiscordStatus
         {
             DiscordLibraryLoader.LoadLibrary();
             InitializeDiscord();
-            UpdateActivity();
             new Thread(DiscordLoopThread).Start();
         }
 
@@ -66,8 +65,6 @@ namespace DiscordStatus
             timerRefreshActivity = 0.0f;
             GameStarted = true;
             gameStartedTime = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
-
-            UpdateActivity();
         }
 
         public override void OnApplicationQuit()
@@ -82,8 +79,8 @@ namespace DiscordStatus
                 if (gameClosing)
                     break;
 
-                discordClient.RunCallbacks();
                 Thread.Sleep(1000);
+                discordClient.RunCallbacks();
             }
         }
 
